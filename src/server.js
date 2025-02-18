@@ -6,23 +6,26 @@ const morgan = require("morgan");
 const authRoutes = require("./routes/authRoutes");
 const pandascoreRoutes = require("./routes/pandascoreRoutes");
 const teamRoutes = require("./routes/teamRoutes");
-const { saveUpcomingMatches } = require("./utils/updateMatches"); // 🔥 Import de la mise à jour des matchs
-const { router: oddsRouter } = require("./services/oddsScraper"); // ✅ Corrigé pour extraire seulement le router
+const { saveUpcomingMatches } = require("./utils/updateMatches");
+const oddsRoutes = require("./services/oddsScraper"); // ✅ Vérifier que oddsScraper exporte bien un router
 
 const app = express();
 
 app.use(express.json());
 app.use(cors());
 app.use(morgan("dev"));
+
+// ✅ S'assurer que toutes les réponses sont bien en JSON
 app.use((req, res, next) => {
   res.setHeader("Content-Type", "application/json");
   next();
 });
 
+// 📌 Définition des routes API
 app.use("/api/auth", authRoutes);
 app.use("/api/pandascore", pandascoreRoutes);
 app.use("/api", teamRoutes);
-app.use("/api/odds", oddsRouter); // ✅ Utilise uniquement le router
+app.use("/api/odds", oddsRoutes); // ✅ Vérifier que oddsRoutes est bien un router
 
 const PORT = process.env.PORT || 3000;
 
@@ -46,4 +49,5 @@ setInterval(async () => {
   }
 }, 5 * 60 * 1000); // 5 minutes
 
+// ✅ Démarrer le serveur
 app.listen(PORT, () => console.log(`🚀 Serveur démarré sur le port ${PORT}`));

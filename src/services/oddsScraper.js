@@ -3,7 +3,7 @@ const router = express.Router();
 const connection = require("../config/db");
 const { scrapeLiquipediaTeam } = require("./LiquipediaScraper");
 
-// 🏆 Fonction pour calculer les cotes basées sur le Win Rate et la Différence de Rounds
+// 📌 Fonction pour calculer les cotes basées sur le Win Rate et la Différence de Rounds
 function calculateOdds(teamAStats, teamBStats) {
     if (!teamAStats || !teamBStats) return { teamA: null, teamB: null };
 
@@ -19,49 +19,78 @@ function calculateOdds(teamAStats, teamBStats) {
     const oddsA = (100 / probabilityA).toFixed(2);
     const oddsB = (100 / probabilityB).toFixed(2);
 
-    return {
-        teamA: oddsA,
-        teamB: oddsB,
-    };
+    return { teamA: oddsA, teamB: oddsB };
 }
 
-// 🚀 Fonction principale pour calculer les cotes de tous les matchs en base
-async function scrapeOdds() {
+// 📌 Route API pour récupérer les cotes d'un match par son ID
+router.get("/:match_id", async (req, res) => {
+    const { match_id } = req.params;
+
     try {
-        // 🔄 Récupérer les matchs stockés dans la base de données
+        const [odds] = await connection.execute("SELECT * FROM odds WHERE match_id = ?", [match_id]);
+
+        if (odds.length === 0) {
+            return res.status(404).json({ message: "Aucune cote trouvée pour ce match." });
+        }
+
+        console.log(`✅ Cotes récupérées pour le match ${match_id}:`, odds[0]);
+
+        res.json(odds[0]);
+    } catch (error) {
+        console.error("❌ Erreur lors de la récupération des cotes :", error);
+        res.status(500).json({ error: "Erreur lors de la récupération des cotes" });
+    }
+});
+
+// 📌 Route API pour calculer les cotes uniquement pour les nouveaux matchs
+router.post("/calculate", async (req, res) => {
+    try {
+        // 🔄 Récupérer les matchs en base
         const [matches] = await connection.execute("SELECT id, team_a, team_b FROM matches");
 
         if (matches.length === 0) {
-            console.log("⚠️ Aucun match en base pour calculer les cotes.");
-            return [];
+            return res.json({ message: "Aucun match en base pour calculer les cotes." });
         }
 
-        console.log(`📊 ${matches.length} matchs trouvés en base. Calcul des cotes en cours...`);
+        console.log(`📊 ${matches.length} matchs trouvés en base. Vérification des cotes...`);
 
         const results = [];
 
         for (const match of matches) {
             const { id, team_a, team_b } = match;
 
-            console.log(`📌 Analyse du match : ${team_a} vs ${team_b}`);
+            // 🔍 Vérifier si les cotes existent déjà
+            const [existingOdds] = await connection.execute("SELECT * FROM odds WHERE match_id = ?", [id]);
 
-            // 🔍 Scraping des stats des équipes sur Liquipedia
+            if (existingOdds.length > 0) {
+                console.log(`✅ Cotes déjà enregistrées pour ${team_a} vs ${team_b}, pas de recalcul.`);
+                results.push({
+                    match_id: id,
+                    teamA: { name: team_a, odds: existingOdds[0].team_a_odds },
+                    teamB: { name: team_b, odds: existingOdds[0].team_b_odds },
+                });
+                continue;
+            }
+
+            console.log(`📌 Calcul des cotes pour ${team_a} vs ${team_b}...`);
+
+            // 🔥 Scraping des stats des équipes
             const teamAStats = await scrapeLiquipediaTeam(team_a);
             const teamBStats = await scrapeLiquipediaTeam(team_b);
 
             if (!teamAStats || !teamBStats || isNaN(teamAStats.winRate) || isNaN(teamBStats.winRate)) {
-                console.log(`⚠️ Stats indisponibles pour ${team_a} ou ${team_b}, saut du match.`);
+                console.log(`⚠️ Impossible de récupérer les stats pour ${team_a} ou ${team_b}, saut du match.`);
                 continue;
             }
 
-            // 📊 Calcul des cotes
+            // 🏆 Calcul des cotes
             const odds = calculateOdds(teamAStats, teamBStats);
             console.log(`📊 Cotes calculées : ${team_a} (${odds.teamA}) vs ${team_b} (${odds.teamB})`);
 
             // 💾 Stockage en base de données
             await connection.execute(
-                "INSERT INTO odds (match_id, team_a_odds, team_b_odds, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE team_a_odds = ?, team_b_odds = ?, updated_at = NOW()",
-                [id, odds.teamA, odds.teamB, odds.teamA, odds.teamB]
+                "INSERT INTO odds (match_id, team_a_odds, team_b_odds, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
+                [id, odds.teamA, odds.teamB]
             );
 
             results.push({
@@ -72,22 +101,12 @@ async function scrapeOdds() {
         }
 
         console.log("✅ Fin du calcul des cotes !");
-        return results;
-    } catch (error) {
-        console.error("❌ Erreur dans scrapeOdds :", error);
-        throw error;
-    }
-}
-
-// 📌 Route API pour recalculer les cotes sur demande
-router.post("/calculate", async (req, res) => {
-    try {
-        const results = await scrapeOdds();
         res.json(results);
     } catch (error) {
+        console.error("❌ Erreur dans oddsScraper :", error);
         res.status(500).json({ error: "Erreur lors du calcul des cotes" });
     }
 });
 
-// 🚀 Export des fonctions pour utilisation dans `updateMatches.js`
-module.exports = { scrapeOdds, router };
+// 🔥 Correction de l'export pour éviter les erreurs
+module.exports = router;
