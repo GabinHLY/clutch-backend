@@ -82,7 +82,7 @@ router.get("/valorant/vct/upcoming", async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Erreur lors de la récupération des matchs VCT à venir." });
   }
-});
+}); 
 
 
 module.exports = router;
