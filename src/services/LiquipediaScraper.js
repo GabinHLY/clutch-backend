@@ -13,13 +13,13 @@ async function scrapeLiquipediaTeam(teamName) {
 
         const $ = cheerio.load(data);
 
-        // 🟢 Récupérer les 10 derniers matchs
-        const matches = [];
+        // 🟢 Récupérer les 10 derniers matchs pour le calcul des cotes
+        const allMatches = [];
         let totalRoundsWon = 0;
         let totalRoundsLost = 0;
 
         $("table.wikitable tbody tr").each((index, element) => {
-            if (matches.length >= 10) return false;
+            if (allMatches.length >= 10) return false;
 
             const columns = $(element).find("td");
             if (columns.length > 5) {
@@ -37,14 +37,18 @@ async function scrapeLiquipediaTeam(teamName) {
                 totalRoundsWon += teamScore;
                 totalRoundsLost += opponentScore;
 
-                matches.push({ date, score, opponent, isWin });
+                allMatches.push({ date, score, opponent, isWin });
             }
         });
 
-        console.log(`📋 ${matches.length} derniers matchs récupérés`);
+        console.log(`📋 ${allMatches.length} derniers matchs récupérés`);
 
-        const totalMatches = matches.length;
-        const totalWins = matches.reduce((acc, match) => acc + match.isWin, 0);
+        // 🟢 Séparation des 5 derniers matchs pour affichage sur le front
+        const recentMatchesForDisplay = allMatches.slice(0, 5); // Garde les 5 plus récents
+
+        // 🟢 Calcul des statistiques pour le calcul des cotes
+        const totalMatches = allMatches.length;
+        const totalWins = allMatches.reduce((acc, match) => acc + match.isWin, 0);
         const winRate = totalMatches > 0 ? ((totalWins / totalMatches) * 100).toFixed(2) : null;
 
         const avgRoundsWon = totalMatches > 0 ? (totalRoundsWon / totalMatches).toFixed(2) : null;
@@ -57,7 +61,8 @@ async function scrapeLiquipediaTeam(teamName) {
             team: teamName,
             winRate: parseFloat(winRate),
             roundDifference: parseFloat(roundDifference),
-            recentMatches: matches,
+            matchesForOdds: allMatches, // 10 derniers matchs pour le calcul des cotes
+            matchesForDisplay: recentMatchesForDisplay, // 5 derniers matchs pour le front
         };
     } catch (error) {
         console.error(`❌ Erreur lors du scraping de ${teamName} :`, error.message);

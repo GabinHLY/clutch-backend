@@ -6,8 +6,9 @@ const morgan = require("morgan");
 const authRoutes = require("./routes/authRoutes");
 const pandascoreRoutes = require("./routes/pandascoreRoutes");
 const teamRoutes = require("./routes/teamRoutes");
-const { saveUpcomingMatches } = require("./utils/updateMatches");
 const oddsRoutes = require("./services/oddsScraper"); // ✅ Vérifier que oddsScraper exporte bien un router
+const statsRoutes = require("./routes/stats"); // ✅ Ajout de la route pour récupérer les stats d'une équipe
+const { saveUpcomingMatches } = require("./utils/updateMatches");
 
 const app = express();
 
@@ -25,7 +26,8 @@ app.use((req, res, next) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/pandascore", pandascoreRoutes);
 app.use("/api", teamRoutes);
-app.use("/api/odds", oddsRoutes); // ✅ Vérifier que oddsRoutes est bien un router
+app.use("/api/odds", oddsRoutes);
+app.use("/api/stats", statsRoutes); // ✅ Ajout de la route des stats
 
 const PORT = process.env.PORT || 3000;
 
