@@ -5,7 +5,7 @@
   "description": "🚀 **Clutch Backend** est l’API qui alimente l’application **Clutch**, permettant de **suivre les compétitions e-sport en temps réel** et de **gérer un système de paris avec jetons virtuels**. Ce backend assure la communication avec les bases de données et les services externes pour offrir une expérience fluide et sécurisée aux utilisateurs.",
   "main": "index.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node ./src/server.js",
     "dev": "nodemon server.js"
   },
   "keywords": [],
