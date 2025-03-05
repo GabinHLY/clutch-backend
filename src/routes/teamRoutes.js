@@ -1,7 +1,10 @@
-const express = require("express");
-const { getTeamData } = require("../controllers/teamController");
+import express from 'express';
+import { getAllTeams, getTeam, getRoster } from '../interfaces/teamController.js';
+
 const router = express.Router();
 
-router.get("/team/:slug", getTeamData);
+router.get('/teams', getAllTeams);
+router.get('/teams/:id', getTeam);
+router.get('/teams/:id/roster', getRoster);
 
-module.exports = router;
+export default router;
