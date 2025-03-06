@@ -9,7 +9,8 @@ import {
     updateMatchStatus, 
     completeMatch, 
     getMatchesFromDB,
-    autoSyncMatchesController // importer la nouvelle fonction
+    autoSyncMatchesController,
+    getOngoingMatchesFromDBController // importer la nouvelle fonction
 } from '../interfaces/matchController.js';
 
 const router = express.Router();
@@ -33,5 +34,7 @@ router.get('/matches/upcoming-db', getMatchesFromDB);
 
 // Nouvelle route pour la synchro automatique (optionnelle)
 router.post('/matches/auto-sync', autoSyncMatchesController);
+
+router.get('/matches/ongoing-db', getOngoingMatchesFromDBController);
 
 export default router;

@@ -3,7 +3,8 @@ import {
     getMatchesByStatus, 
     getUpcomingVctMatches, 
     getUpcomingMatchesFromDB,
-    autoSyncMatches // on importe la nouvelle fonction
+    autoSyncMatches,
+    getOngoingMatchesFromDB// on importe la nouvelle fonction
 } from '../application/matchService.js';
 import db from '../config/database.js';
 
@@ -152,6 +153,18 @@ const autoSyncMatchesController = async (req, res) => {
     }
 };
 
+/**
+ * Récupérer les matchs en cours depuis la BDD
+ */
+const getOngoingMatchesFromDBController = async (req, res) => {
+    try {
+        const matches = await getOngoingMatchesFromDB();
+        res.json(matches);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 export { 
     getUpcomingMatches, 
     getRunningMatches, 
@@ -161,5 +174,6 @@ export {
     updateMatchStatus, 
     completeMatch, 
     getMatchesFromDB,
-    autoSyncMatchesController // on exporte la nouvelle fonction
+    autoSyncMatchesController,
+    getOngoingMatchesFromDBController// on exporte la nouvelle fonction
 };

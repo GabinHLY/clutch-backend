@@ -236,7 +236,7 @@ async function autoSyncMatches() {
 const [ongoingMatches] = await db.query("SELECT id FROM matches WHERE status = 'ongoing'");
 for (const matchRow of ongoingMatches) {
     try {
-        const { data: matchData } = await apiClient.get(`valorant/matches/${matchRow.id}`);
+        const { data: matchData } = await apiClient.get(`valorant/matches?filter[id]=${matchRow.id}`);
         // Si matchData est un tableau, on prend le premier élément
         const matchInfo = Array.isArray(matchData) ? matchData[0] : matchData;
 
@@ -284,10 +284,26 @@ for (const matchRow of ongoingMatches) {
     }
 }
 
+/**
+ * Récupérer les matchs en cours ('ongoing') depuis la base de données
+ */
+async function getOngoingMatchesFromDB() {
+    try {
+        const [matches] = await db.query(
+            "SELECT * FROM matches WHERE status = 'ongoing' ORDER BY start_time ASC"
+        );
+        return matches;
+    } catch (error) {
+        console.error("❌ Erreur lors de la récupération des matchs en cours :", error.message);
+        throw new Error("Impossible de récupérer les matchs en cours.");
+    }
+}
+
 export {
     getMatchesByStatus,
     getUpcomingVctMatches,
     syncUpcomingMatchesToDB,
     getUpcomingMatchesFromDB,
-    autoSyncMatches // nouvelle fonction
+    autoSyncMatches,
+    getOngoingMatchesFromDB
 };
