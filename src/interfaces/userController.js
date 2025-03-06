@@ -52,7 +52,8 @@ const uploadProfilePicture = async (req, res) => {
         return res.status(400).json({ error: "Aucun fichier envoyé." });
     }
 
-    const imagePath = `uploads/${req.file.filename}`;
+    const imagePath = req.file.filename; // Sans "uploads/"
+
 
     try {
         const [user] = await db.query("SELECT profile_picture FROM users WHERE id = ?", [req.user.id]);

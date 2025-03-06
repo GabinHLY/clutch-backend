@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cron from 'node-cron';
+import path from "path";
 
 import userRoutes from './routes/userRoutes.js';
 import matchRoutes from './routes/matchRoutes.js';
@@ -25,6 +26,9 @@ app.use(express.json());
 app.use('/api/users', userRoutes);
 app.use('/api', matchRoutes);
 app.use('/api', teamRoutes);
+
+// ✅ Permet d’accéder aux images dans `/uploads`
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // 🕒 Automatisation des mises à jour avec CRON
 
