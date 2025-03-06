@@ -115,7 +115,7 @@ const requestPasswordReset = async (req, res) => {
         const tokenExpiration = new Date(Date.now() + 15 * 60 * 1000);
         await db.query("UPDATE users SET reset_token = ?, reset_token_expiration = ? WHERE email = ?", [resetToken, tokenExpiration, email]);
 
-        const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
+        const resetLink = `http://localhost:5173/reset-password/confirm?token=${resetToken}`;
         await transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: email,

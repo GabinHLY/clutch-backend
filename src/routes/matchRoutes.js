@@ -1,40 +1,40 @@
-// matchRoutes.js
 import express from 'express';
 import { 
-    getUpcomingMatches, 
-    getRunningMatches, 
-    getPastMatches, 
-    getVctMatches, 
-    syncUpcomingMatchesToDB, 
+    getMatches, 
+    syncMatches, 
+    updateLiveScores, 
+    updateTbdTeams, 
     updateMatchStatus, 
     completeMatch, 
-    getMatchesFromDB,
-    autoSyncMatchesController,
-    getOngoingMatchesFromDBController // importer la nouvelle fonction
+    getMatchesFromDB, 
+    addMatch 
 } from '../interfaces/matchController.js';
 
 const router = express.Router();
 
-router.get('/matches/upcoming', getUpcomingMatches);
-router.get('/matches/running', getRunningMatches);
-router.get('/matches/past', getPastMatches);
-router.get('/matches/vct', getVctMatches);
+// 📌 Récupération des matchs depuis l'API PandaScore (upcoming, running, past)
+router.get('/matches/:status', getMatches);
 
-// Ancienne synchro manuelle (si besoin)
-router.post('/matches/sync', syncUpcomingMatchesToDB);
+// 📌 Récupération des matchs depuis la BDD (upcoming, ongoing)
+router.get('/matches/db/:status', getMatchesFromDB);
+        
 
-// Mise à jour manuelle de 'upcoming' à 'ongoing'
-router.put('/matches/update', updateMatchStatus);
+// 📌 Synchronisation des matchs à venir avec la BDD
+router.post('/matches/sync', syncMatches);
 
-// Finalisation manuelle de 'ongoing' à 'finished'
+// 📌 Mise à jour des scores en direct pour les matchs en cours
+router.put('/matches/live-scores', updateLiveScores);
+
+// 📌 Mise à jour des matchs TBD avec les équipes qualifiées
+router.put('/matches/update-tbd', updateTbdTeams);
+
+// 📌 Mise à jour automatique du statut des matchs
+router.put('/matches/update-status', updateMatchStatus);
+
+// 📌 Finalisation manuelle d'un match (enregistre le vainqueur)
 router.patch('/matches/complete', completeMatch);
 
-// Récupération de 20 matchs 'upcoming' depuis la BDD
-router.get('/matches/upcoming-db', getMatchesFromDB);
-
-// Nouvelle route pour la synchro automatique (optionnelle)
-router.post('/matches/auto-sync', autoSyncMatchesController);
-
-router.get('/matches/ongoing-db', getOngoingMatchesFromDBController);
+// 📌 Ajout ou mise à jour manuelle d'un match dans la BDD
+router.post('/matches/add', addMatch);
 
 export default router;
