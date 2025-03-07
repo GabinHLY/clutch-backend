@@ -1,21 +1,19 @@
 import jwt from "jsonwebtoken";
 
 const authMiddleware = (req, res, next) => {
-    const authHeader = req.headers.authorization; // ✅ Récupération correcte du header en minuscule
+    const token = req.cookies.token; // ✅ Récupération du token depuis les cookies
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({ error: "Accès refusé. Token manquant ou mal formaté." });
+    if (!token) {
+        return res.status(401).json({ error: "Accès refusé. Token manquant." });
     }
-
-    const token = authHeader.split(" ")[1]; // ✅ Séparation propre du token
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded; // ✅ Stocke les infos utilisateur dans `req.user`
-        console.log("Utilisateur authentifié :", decoded); // 🔍 Debug : Vérifie ce que contient le token
+        console.log("Utilisateur authentifié :", decoded);
         next();
     } catch (error) {
-        console.error("Erreur d'authentification :", error.message); // 🔍 Debug : Affiche pourquoi ça échoue
+        console.error("Erreur d'authentification :", error.message);
         return res.status(401).json({ error: "Token invalide." });
     }
 };

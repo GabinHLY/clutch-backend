@@ -20,7 +20,7 @@ class UserService {
         const isMatch = await bcrypt.compare(password, user[0].password);
         if (!isMatch) throw new Error("Email ou mot de passe incorrect.");
 
-        const token = jwt.sign({ id: user[0].id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ id: user[0].id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 
         return {
             message: "Connexion réussie",

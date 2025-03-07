@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import cron from 'node-cron';
 import path from "path";
 
@@ -20,9 +21,16 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json());
+// 🔥 Ajout du CORS avec `credentials: true` pour permettre l’envoi de cookies
+app.use(cors({
+    origin: process.env.FRONTEND_URL, // ⚠️ Mets ici l’URL de ton frontend (ex: "http://localhost:5173")
+    credentials: true
+}));
 
+app.use(express.json());
+app.use(cookieParser());
+
+// ✅ Routes API
 app.use('/api/users', userRoutes);
 app.use('/api', matchRoutes);
 app.use('/api', teamRoutes);
@@ -31,59 +39,13 @@ app.use('/api', teamRoutes);
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // 🕒 Automatisation des mises à jour avec CRON
-
-// 📌 Synchronisation des matchs à venir toutes les minutes
 cron.schedule('* * * * *', async () => {
-    console.log('🔄 Synchronisation automatique des matchs à venir...');
-    try {
-        await syncMatches();
-        console.log('✅ Synchronisation des matchs à venir terminée.');
-    } catch (err) {
-        console.error('❌ Erreur lors de la synchronisation des matchs à venir:', err.message);
-    }
-});
-
-// 📌 Mise à jour des scores en direct toutes les minutes
-cron.schedule('* * * * *', async () => {
-    console.log('🔄 Mise à jour des scores en direct...');
+    console.log('🔄 Mise à jour automatique des matchs en direct...');
     try {
         await updateLiveScores();
-        console.log('✅ Scores des matchs en direct mis à jour.');
+        console.log('✅ Scores mis à jour.');
     } catch (err) {
-        console.error('❌ Erreur lors de la mise à jour des scores en direct:', err.message);
-    }
-});
-
-// 📌 Vérification des matchs TBD toutes les 10 minutes
-cron.schedule('*/10 * * * *', async () => {
-    console.log('🔄 Vérification des matchs TBD...');
-    try {
-        await updateTbdTeams();
-        console.log('✅ Mise à jour des équipes TBD terminée.');
-    } catch (err) {
-        console.error('❌ Erreur lors de la mise à jour des équipes TBD:', err.message);
-    }
-});
-
-// 📌 Mise à jour du statut des matchs toutes les minutes
-cron.schedule('* * * * *', async () => {
-    console.log('🔄 Mise à jour automatique du statut des matchs...');
-    try {
-        await updateMatchStatus();
-        console.log('✅ Statut des matchs mis à jour.');
-    } catch (err) {
-        console.error('❌ Erreur lors de la mise à jour automatique des statuts:', err.message);
-    }
-});
-
-// 📌 Finalisation automatique des matchs toutes les 5 minutes (optionnel)
-cron.schedule('*/5 * * * *', async () => {
-    console.log('🔄 Finalisation automatique des matchs terminés...');
-    try {
-        await completeMatch();  // ⚠️ À adapter si la finalisation doit se faire avec des paramètres
-        console.log('✅ Matches finalisés automatiquement.');
-    } catch (err) {
-        console.error('❌ Erreur lors de la finalisation automatique des matchs:', err.message);
+        console.error('❌ Erreur lors de la mise à jour des scores:', err.message);
     }
 });
 

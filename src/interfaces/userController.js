@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import transporter from '../infrastructure/mailer.js';
 
 
+
 const getAllUsers = async (req, res) => {
     try {
         const [users] = await db.query("SELECT id, name, email, points, profile_picture, cover_photo, bio FROM users");
@@ -41,7 +42,16 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
         const result = await UserService.login(email, password);
-        res.status(200).json(result);
+        
+        // ✅ Stockage sécurisé du cookie
+        res.cookie("token", result.token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production", // Activer secure en prod
+            sameSite: "strict",
+            maxAge: 30 * 24 * 60 * 60 * 1000
+        });
+
+        res.status(200).json({ message: "Connexion réussie", user: result.user });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
@@ -116,7 +126,7 @@ const requestPasswordReset = async (req, res) => {
         const tokenExpiration = new Date(Date.now() + 15 * 60 * 1000);
         await db.query("UPDATE users SET reset_token = ?, reset_token_expiration = ? WHERE email = ?", [resetToken, tokenExpiration, email]);
 
-        const resetLink = `http://localhost:5173/reset-password/confirm?token=${resetToken}`;
+        const resetLink = `https://clutch.gabinduboc.fr/reset-password/confirm?token=${resetToken}`;
         await transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: email,
