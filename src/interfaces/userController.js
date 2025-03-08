@@ -5,6 +5,7 @@ import path from 'path';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import transporter from '../infrastructure/mailer.js';
+import jwt from 'jsonwebtoken';
 
 
 
@@ -41,21 +42,55 @@ const register = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const result = await UserService.login(email, password);
+        const [rows] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
+
+        if (rows.length === 0) throw new Error("Email ou mot de passe incorrect.");
         
-        // ✅ Stockage sécurisé du cookie
-        res.cookie("token", result.token, {
+        const user = rows[0];
+
+        console.log("🔹 ID utilisateur à stocker dans le token :", user.id); // ✅ Debugging
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) throw new Error("Email ou mot de passe incorrect.");
+
+        const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+
+        console.log("🔹 Token généré :", token); // ✅ Debugging
+
+        res.cookie("token", token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production", // Activer secure en prod
+            secure: false,
             sameSite: "strict",
             maxAge: 30 * 24 * 60 * 60 * 1000
         });
 
-        res.status(200).json({ message: "Connexion réussie", user: result.user });
+        res.status(200).json({ message: "Connexion réussie", token });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
 };
+
+
+
+const getMe = async (req, res) => {
+    try {
+        console.log("🔹 ID utilisateur extrait du token :", req.user.id); // ✅ Debug
+
+        const [rows] = await db.query("SELECT id, name, email FROM users WHERE id = ?", [req.user.id]);
+
+        if (rows.length === 0) {
+            console.log("❌ Aucun utilisateur trouvé en base avec cet ID :", req.user.id);
+            return res.status(404).json({ error: "Utilisateur non trouvé." });
+        }
+
+        console.log("✅ Utilisateur trouvé :", rows[0]); // ✅ Debug
+        res.json(rows[0]);
+    } catch (error) {
+        console.error("❌ Erreur serveur :", error);
+        res.status(500).json({ error: "Erreur serveur." });
+    }
+};
+
 
 const uploadProfilePicture = async (req, res) => {
     if (!req.file) {
@@ -157,4 +192,4 @@ const resetPassword = async (req, res) => {
     }
 };
 
-export { register, login, uploadProfilePicture, updateProfile, deleteAccount, requestPasswordReset, resetPassword, getAllUsers, getUserById };
+export { register, login, getMe, uploadProfilePicture, updateProfile, deleteAccount, requestPasswordReset, resetPassword, getAllUsers, getUserById };

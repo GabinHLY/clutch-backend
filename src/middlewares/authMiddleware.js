@@ -1,7 +1,17 @@
 import jwt from "jsonwebtoken";
 
 const authMiddleware = (req, res, next) => {
-    const token = req.cookies.token; // ✅ Récupération du token depuis les cookies
+    let token = req.cookies.token; // 🔥 Vérifie si le token est stocké en cookie
+
+    if (!token && req.headers.cookie) {
+        const cookies = req.headers.cookie.split("; ");
+        const tokenCookie = cookies.find(c => c.startsWith("token="));
+        if (tokenCookie) {
+            token = tokenCookie.split("=")[1];
+        }
+    }
+
+    console.log("🔹 Token extrait dans authMiddleware :", token); // ✅ Debug
 
     if (!token) {
         return res.status(401).json({ error: "Accès refusé. Token manquant." });
@@ -9,13 +19,18 @@ const authMiddleware = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded; // ✅ Stocke les infos utilisateur dans `req.user`
-        console.log("Utilisateur authentifié :", decoded);
+        console.log("🔹 Payload décodé du token :", decoded); // ✅ Debug
+
+        req.user = decoded;
         next();
     } catch (error) {
-        console.error("Erreur d'authentification :", error.message);
-        return res.status(401).json({ error: "Token invalide." });
+        console.error("❌ Erreur JWT :", error.message);
+        return res.status(401).json({ error: "Token invalide ou expiré." });
     }
 };
 
+
+
+
 export default authMiddleware;
+  

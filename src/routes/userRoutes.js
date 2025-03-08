@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, uploadProfilePicture, updateProfile, deleteAccount, requestPasswordReset, resetPassword, getAllUsers, getUserById } from '../interfaces/userController.js';
+import { register, login, getMe, uploadProfilePicture, updateProfile, deleteAccount, requestPasswordReset, resetPassword, getAllUsers, getUserById } from '../interfaces/userController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 import upload from '../config/multer.js';
 
@@ -10,6 +10,7 @@ router.get('/', getAllUsers);
 router.get('/:id', getUserById);    
 router.post('/register', register);
 router.post('/login', login);
+router.get('/me', authMiddleware, getMe);
 router.patch('/profile', authMiddleware, updateProfile);
 router.delete('/account', authMiddleware, deleteAccount);
 router.post('/upload', authMiddleware, upload.single("profile_picture"), uploadProfilePicture);
