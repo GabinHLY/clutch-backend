@@ -1,17 +1,8 @@
 import jwt from "jsonwebtoken";
 
 const authMiddleware = (req, res, next) => {
-    let token = req.cookies.token; // 🔥 Vérifie si le token est stocké en cookie
-
-    if (!token && req.headers.cookie) {
-        const cookies = req.headers.cookie.split("; ");
-        const tokenCookie = cookies.find(c => c.startsWith("token="));
-        if (tokenCookie) {
-            token = tokenCookie.split("=")[1];
-        }
-    }
-
-    console.log("🔹 Token extrait dans authMiddleware :", token); // ✅ Debug
+    // Lire le token depuis le cookie "token"
+    const token = req.cookies.token;
 
     if (!token) {
         return res.status(401).json({ error: "Accès refusé. Token manquant." });
@@ -19,9 +10,8 @@ const authMiddleware = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log("🔹 Payload décodé du token :", decoded); // ✅ Debug
-
-        req.user = decoded;
+        console.log("🔹 Payload décodé du token :", decoded);
+        req.user = decoded; // par exemple { id: 13, iat: ..., exp: ... }
         next();
     } catch (error) {
         console.error("❌ Erreur JWT :", error.message);
@@ -29,8 +19,4 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
-
-
-
 export default authMiddleware;
-  

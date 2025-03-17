@@ -7,8 +7,6 @@ import crypto from 'crypto';
 import transporter from '../infrastructure/mailer.js';
 import jwt from 'jsonwebtoken';
 
-
-
 const getAllUsers = async (req, res) => {
     try {
         const [users] = await db.query("SELECT id, name, email, points, profile_picture, cover_photo, bio FROM users");
@@ -42,40 +40,38 @@ const register = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const [rows] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
 
-        if (rows.length === 0) throw new Error("Email ou mot de passe incorrect.");
-        
-        const user = rows[0];
+        // Vérifier les identifiants via le service
+        const user = await UserService.checkCredentials(email, password);
 
-        console.log("🔹 ID utilisateur à stocker dans le token :", user.id); // ✅ Debugging
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) throw new Error("Email ou mot de passe incorrect.");
-
+        // Génération du token JWT
         const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 
-        console.log("🔹 Token généré :", token); // ✅ Debugging
+        console.log("🔹 ID utilisateur à stocker dans le token :", user.id);
+        console.log("🔹 Token généré :", token);
 
+        // Stocker le cookie "token" pour maintenir la session
         res.cookie("token", token, {
             httpOnly: true,
-            secure: false,
-            sameSite: "strict",
-            maxAge: 30 * 24 * 60 * 60 * 1000
-        });
+            secure: true,      // true pour HTTPS
+            sameSite: "none",  // autorise le cross-site
+            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 jours
+          });
+          
 
-        res.status(200).json({ message: "Connexion réussie", token });
+        res.status(200).json({
+            message: "Connexion réussie",
+            token,
+            user
+        });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
 };
 
-
-
 const getMe = async (req, res) => {
     try {
-        console.log("🔹 ID utilisateur extrait du token :", req.user.id); // ✅ Debug
-
+        console.log("🔹 ID utilisateur extrait du token :", req.user.id);
         const [rows] = await db.query("SELECT id, name, email FROM users WHERE id = ?", [req.user.id]);
 
         if (rows.length === 0) {
@@ -83,7 +79,7 @@ const getMe = async (req, res) => {
             return res.status(404).json({ error: "Utilisateur non trouvé." });
         }
 
-        console.log("✅ Utilisateur trouvé :", rows[0]); // ✅ Debug
+        console.log("✅ Utilisateur trouvé :", rows[0]);
         res.json(rows[0]);
     } catch (error) {
         console.error("❌ Erreur serveur :", error);
@@ -91,14 +87,12 @@ const getMe = async (req, res) => {
     }
 };
 
-
 const uploadProfilePicture = async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: "Aucun fichier envoyé." });
     }
 
-    const imagePath = req.file.filename; // Sans "uploads/"
-
+    const imagePath = req.file.filename;
 
     try {
         const [user] = await db.query("SELECT profile_picture FROM users WHERE id = ?", [req.user.id]);
@@ -192,4 +186,15 @@ const resetPassword = async (req, res) => {
     }
 };
 
-export { register, login, getMe, uploadProfilePicture, updateProfile, deleteAccount, requestPasswordReset, resetPassword, getAllUsers, getUserById };
+export {
+    register,
+    login,
+    getMe,
+    uploadProfilePicture,
+    updateProfile,
+    deleteAccount,
+    requestPasswordReset,
+    resetPassword,
+    getAllUsers,
+    getUserById
+};
