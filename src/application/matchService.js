@@ -10,6 +10,7 @@ const statusMapping = {
     running: 'ongoing',
     past: 'finished',
     not_started: 'upcoming',
+    finished: 'finished'
 };
 
 /**
@@ -23,6 +24,21 @@ async function getMatchesByStatus(status) {
             const matchStatus = statusMapping[match?.status] || 'upcoming';
             const teamA = match.opponents?.[0]?.opponent || { id: 0, name: 'TBD', image_url: null };
             const teamB = match.opponents?.[1]?.opponent || { id: 0, name: 'TBD', image_url: null };
+            
+            const teamAScore = match.results?.find((result) => result.team_id === teamA.id)?.score || 0;
+            const teamBScore = match.results?.find((result) => result.team_id === teamB.id)?.score || 0;
+            
+            // Déterminer le résultat du match si terminé
+            let result = 'pending';
+            if (matchStatus === 'finished') {
+                if (teamAScore > teamBScore) {
+                    result = 'team_a';
+                } else if (teamBScore > teamAScore) {
+                    result = 'team_b';
+                } else {
+                    result = 'draw';
+                }
+            }
 
             return {
                 id: match.id,
@@ -31,13 +47,13 @@ async function getMatchesByStatus(status) {
                     id: teamA.id,
                     name: teamA.name,
                     logo: teamA.image_url,
-                    score: match.results?.find((result) => result.team_id === teamA.id)?.score || 0,
+                    score: teamAScore,
                 },
                 team_b: {
                     id: teamB.id,
                     name: teamB.name,
                     logo: teamB.image_url,
-                    score: match.results?.find((result) => result.team_id === teamB.id)?.score || 0,
+                    score: teamBScore,
                 },
                 serie: {
                     name: match.serie?.name || 'Unknown Series',
@@ -45,6 +61,7 @@ async function getMatchesByStatus(status) {
                 },
                 start_time: match.begin_at,
                 status: matchStatus,
+                result: result,
                 stream_url: match.streams_list?.find((stream) => stream.main)?.raw_url || null,
             };
         });
@@ -98,11 +115,27 @@ async function upsertMatch(match) {
     }
 
     let matchStatus = statusMapping[match?.status] || 'upcoming';
+    
+    // Récupérer les scores pour les matchs en cours ou terminés
+    const teamAScore = match.results?.find((result) => result.team_id === teamA.id)?.score || 0;
+    const teamBScore = match.results?.find((result) => result.team_id === teamB.id)?.score || 0;
+    
+    // Déterminer le résultat du match si terminé
+    let result = 'pending';
+    if (matchStatus === 'finished') {
+        if (teamAScore > teamBScore) {
+            result = 'team_a';
+        } else if (teamBScore > teamAScore) {
+            result = 'team_b';
+        } else {
+            result = 'draw';
+        }
+    }
 
     await db.query(
         `INSERT INTO matches 
-          (id, game, team_a_id, team_a, team_a_logo, team_b_id, team_b, team_b_logo, start_time, status, result, stream_url, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+          (id, game, team_a_id, team_a, team_a_logo, team_b_id, team_b, team_b_logo, team_a_score, team_b_score, start_time, status, result, stream_url, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
          ON DUPLICATE KEY UPDATE
            team_a_id = VALUES(team_a_id),
            team_a = VALUES(team_a),
@@ -110,8 +143,11 @@ async function upsertMatch(match) {
            team_b_id = VALUES(team_b_id),
            team_b = VALUES(team_b),
            team_b_logo = VALUES(team_b_logo),
+           team_a_score = VALUES(team_a_score),
+           team_b_score = VALUES(team_b_score),
            start_time = VALUES(start_time),
            status = VALUES(status),
+           result = VALUES(result),
            stream_url = VALUES(stream_url),
            updated_at = NOW()`,
         [
@@ -123,9 +159,11 @@ async function upsertMatch(match) {
             teamB.id,
             teamB.name,
             teamB.image_url,
+            teamAScore,
+            teamBScore,
             formattedStartTime,
             matchStatus,
-            'pending',
+            result,
             streamURL
         ]
     );
@@ -153,17 +191,33 @@ async function updateLiveMatchScores() {
                     const teamBId = matchInfo.opponents[1]?.opponent.id;
                     const teamAScore = matchInfo.results?.find(r => r.team_id === teamAId)?.score || 0;
                     const teamBScore = matchInfo.results?.find(r => r.team_id === teamBId)?.score || 0;
+                    
+                    // Vérifier si le match est terminé
+                    const matchStatus = statusMapping[matchInfo.status] || 'ongoing';
+                    let result = 'pending';
+                    
+                    if (matchStatus === 'finished') {
+                        if (teamAScore > teamBScore) {
+                            result = 'team_a';
+                        } else if (teamBScore > teamAScore) {
+                            result = 'team_b';
+                        } else {
+                            result = 'draw';
+                        }
+                    }
 
                     await db.query(
                         `UPDATE matches
                          SET team_a_score = ?, 
                              team_b_score = ?, 
+                             status = ?,
+                             result = ?,
                              updated_at = NOW()
                          WHERE id = ?`,
-                        [teamAScore, teamBScore, matchRow.id]
+                        [teamAScore, teamBScore, matchStatus, result, matchRow.id]
                     );
 
-                    console.log(`✅ Score mis à jour pour match ${matchRow.id}: ${teamAScore} - ${teamBScore}`);
+                    console.log(`✅ Match ${matchRow.id} mis à jour: ${teamAScore} - ${teamBScore}, statut: ${matchStatus}`);
                 }
             } catch (err) {
                 console.error(`❌ Erreur lors de la mise à jour du match ${matchRow.id} :`, err.message);
@@ -192,19 +246,23 @@ async function updateTbdMatches() {
                 const matchInfo = Array.isArray(matchData) ? matchData[0] : matchData;
 
                 if (matchInfo) {
-                    const teamA = matchInfo.opponents[0]?.opponent || { name: "TBD", image_url: null };
-                    const teamB = matchInfo.opponents[1]?.opponent || { name: "TBD", image_url: null };
+                    const teamA = matchInfo.opponents[0]?.opponent || { id: 0, name: "TBD", image_url: null };
+                    const teamB = matchInfo.opponents[1]?.opponent || { id: 0, name: "TBD", image_url: null };
 
                     await db.query(
                         `UPDATE matches
                          SET team_a = ?, 
                              team_b = ?, 
+                             team_a_id = ?,
+                             team_b_id = ?,
                              team_a_logo = ?, 
                              team_b_logo = ?, 
                              updated_at = NOW()
                          WHERE id = ?`,
-                        [teamA.name, teamB.name, teamA.image_url, teamB.image_url, matchRow.id]
+                        [teamA.name, teamB.name, teamA.id, teamB.id, teamA.image_url, teamB.image_url, matchRow.id]
                     );
+                    
+                    console.log(`✅ Équipes mises à jour pour match ${matchRow.id}: ${teamA.name} vs ${teamB.name}`);
                 }
             } catch (err) {
                 console.error(`❌ Erreur lors de la mise à jour du match ${matchRow.id} :`, err.message);
@@ -215,4 +273,43 @@ async function updateTbdMatches() {
     }
 }
 
-export { getMatchesByStatus, syncUpcomingMatchesToDB, upsertMatch, updateLiveMatchScores, updateTbdMatches };
+/**
+ * 6️⃣ Vérifie et met à jour le statut des matchs (upcoming → ongoing)
+ */
+async function updateMatchesStatus() {
+    try {
+        // 1. D'abord mettre à jour les matchs qui devraient passer de upcoming à ongoing
+        const now = new Date();
+        const [upcomingToOngoing] = await db.query(
+            "SELECT id FROM matches WHERE status = 'upcoming' AND start_time <= ?",
+            [now]
+        );
+        
+        if (upcomingToOngoing.length > 0) {
+            console.log(`🔄 ${upcomingToOngoing.length} matchs passent de upcoming à ongoing`);
+            
+            for (const match of upcomingToOngoing) {
+                await db.query(
+                    "UPDATE matches SET status = 'ongoing', updated_at = NOW() WHERE id = ?",
+                    [match.id]
+                );
+                console.log(`✅ Match ${match.id} passé au statut 'ongoing'`);
+            }
+        }
+        
+        // 2. Ensuite, vérifier via l'API si certains matchs sont déjà terminés
+        await updateLiveMatchScores();
+        
+    } catch (error) {
+        console.error("❌ Erreur lors de la mise à jour des statuts de matchs :", error.message);
+    }
+}
+
+export { 
+    getMatchesByStatus, 
+    syncUpcomingMatchesToDB, 
+    upsertMatch, 
+    updateLiveMatchScores, 
+    updateTbdMatches,
+    updateMatchesStatus
+};

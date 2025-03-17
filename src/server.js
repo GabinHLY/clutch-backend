@@ -2,16 +2,13 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import cron from 'node-cron';
 import path from "path";
 
 import userRoutes from './routes/userRoutes.js';
 import matchRoutes from './routes/matchRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
-import { 
-    syncMatches, 
-    updateLiveScores 
-} from './interfaces/matchController.js';
+import { syncMatches } from './interfaces/matchController.js';
+import './infrastructure/matchCronJob.js'; // Importer pour activer les tâches cron
 
 dotenv.config();
 
@@ -33,24 +30,13 @@ app.use('/api/users', userRoutes);
 app.use('/api', matchRoutes);
 app.use('/api', teamRoutes);
 
-// Permet d’accéder aux images dans `/uploads`
+// Permet d'accéder aux images dans /uploads
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Middleware global de gestion des erreurs
 app.use((err, req, res, next) => {
     console.error("❌ ERREUR SERVEUR :", err);
     res.status(500).json({ error: "Une erreur interne est survenue." });
-});
-
-// Automatisation des mises à jour avec CRON (exécuté chaque minute)
-cron.schedule('* * * * *', async () => {
-    console.log('🔄 Mise à jour automatique des scores en direct...');
-    try {
-        await updateLiveScores();
-        console.log('✅ Scores mis à jour avec succès.');
-    } catch (err) {
-        console.error('❌ Erreur lors de la mise à jour des scores:', err.message);
-    }
 });
 
 // Test de la synchronisation au démarrage

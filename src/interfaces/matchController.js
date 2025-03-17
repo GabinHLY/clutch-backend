@@ -4,6 +4,7 @@ import {
     syncUpcomingMatchesToDB, 
     updateLiveMatchScores, 
     updateTbdMatches, 
+    updateMatchesStatus,
     upsertMatch
 } from '../application/matchService.js';
 import db from '../config/database.js';
@@ -61,15 +62,11 @@ const updateTbdTeams = async (req, res) => {
 };
 
 /**
- * Mise à jour du statut des matchs (upcoming → ongoing)
+ * Mise à jour du statut des matchs (upcoming → ongoing → finished)
  */
 const updateMatchStatus = async (req, res) => {
     try {
-        const now = new Date();
-        await db.query(
-            "UPDATE matches SET status = 'ongoing' WHERE status = 'upcoming' AND start_time <= ?",
-            [now]
-        );
+        await updateMatchesStatus();
         res.status(200).json({ message: "Statut des matchs mis à jour." });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -92,7 +89,7 @@ const completeMatch = async (req, res) => {
             [result, matchId]
         );
 
-        res.status(200).json({ message: `Match ${matchId} terminé`, result });
+        res.status(200).json({ message: `Match ${matchId} terminé, result: ${result}` });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -104,12 +101,12 @@ const completeMatch = async (req, res) => {
 const getMatchesFromDB = async (req, res) => {
     try {
         const { status } = req.params;
-        if (!['upcoming', 'ongoing'].includes(status)) {
-            return res.status(400).json({ message: "Statut invalide. Utilisez 'upcoming' ou 'ongoing'." });
+        if (!['upcoming', 'ongoing', 'finished'].includes(status)) {
+            return res.status(400).json({ message: "Statut invalide. Utilisez 'upcoming', 'ongoing' ou 'finished'." });
         }
 
         const [matches] = await db.query(
-            `SELECT * FROM matches WHERE status = ? ORDER BY start_time ASC LIMIT 20`,
+            "SELECT * FROM matches WHERE status = ? ORDER BY start_time ASC LIMIT 20",
             [status]
         );
         res.json(matches);
