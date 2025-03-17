@@ -71,21 +71,26 @@ const login = async (req, res) => {
 
 const getMe = async (req, res) => {
     try {
-        console.log("🔹 ID utilisateur extrait du token :", req.user.id);
-        const [rows] = await db.query("SELECT id, name, email FROM users WHERE id = ?", [req.user.id]);
-
-        if (rows.length === 0) {
-            console.log("❌ Aucun utilisateur trouvé en base avec cet ID :", req.user.id);
-            return res.status(404).json({ error: "Utilisateur non trouvé." });
-        }
-
-        console.log("✅ Utilisateur trouvé :", rows[0]);
-        res.json(rows[0]);
+      console.log("🔹 ID utilisateur extrait du token :", req.user.id);
+  
+      // Ajoutez ici les colonnes souhaitées (points, profile_picture, etc.)
+      const [rows] = await db.query(
+        "SELECT id, name, email, points, profile_picture, cover_photo, bio FROM users WHERE id = ?",
+        [req.user.id]
+      );
+  
+      if (rows.length === 0) {
+        return res.status(404).json({ error: "Utilisateur non trouvé." });
+      }
+  
+      // Renvoie directement la première ligne trouvée
+      res.json(rows[0]);
     } catch (error) {
-        console.error("❌ Erreur serveur :", error);
-        res.status(500).json({ error: "Erreur serveur." });
+      console.error("❌ Erreur serveur :", error);
+      res.status(500).json({ error: "Erreur serveur." });
     }
-};
+  };
+  
 
 const uploadProfilePicture = async (req, res) => {
     if (!req.file) {
