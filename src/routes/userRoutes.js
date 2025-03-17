@@ -2,6 +2,7 @@ import express from 'express';
 import {
     register,
     login,
+    logout,
     getMe,
     uploadProfilePicture,
     updateProfile,
@@ -22,6 +23,7 @@ router.get('/me', authMiddleware, getMe);
 router.get('/:id', getUserById);
 router.post('/register', register);
 router.post('/login', login);
+router.post('/logout', authMiddleware, logout);
 router.patch('/profile', authMiddleware, updateProfile);
 router.delete('/account', authMiddleware, deleteAccount);
 router.post('/upload', authMiddleware, upload.single("profile_picture"), uploadProfilePicture);

@@ -56,9 +56,8 @@ const login = async (req, res) => {
             secure: true,      // true pour HTTPS
             sameSite: "none",  // autorise le cross-site
             maxAge: 30 * 24 * 60 * 60 * 1000 // 30 jours
-          });
+        });
           
-
         res.status(200).json({
             message: "Connexion réussie",
             token,
@@ -66,6 +65,22 @@ const login = async (req, res) => {
         });
     } catch (error) {
         res.status(400).json({ error: error.message });
+    }
+};
+
+const logout = async (req, res) => {
+    try {
+        // Suppression du cookie token
+        res.cookie("token", "", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none",
+            expires: new Date(0) // Date dans le passé pour supprimer immédiatement
+        });
+        
+        res.status(200).json({ message: "Déconnexion réussie" });
+    } catch (error) {
+        res.status(500).json({ error: "Erreur lors de la déconnexion" });
     }
 };
 
@@ -89,8 +104,7 @@ const getMe = async (req, res) => {
       console.error("❌ Erreur serveur :", error);
       res.status(500).json({ error: "Erreur serveur." });
     }
-  };
-  
+};
 
 const uploadProfilePicture = async (req, res) => {
     if (!req.file) {
@@ -194,6 +208,7 @@ const resetPassword = async (req, res) => {
 export {
     register,
     login,
+    logout,
     getMe,
     uploadProfilePicture,
     updateProfile,
