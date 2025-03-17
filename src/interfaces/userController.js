@@ -107,30 +107,28 @@ const getMe = async (req, res) => {
 };
 
 const uploadProfilePicture = async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: "Aucun fichier envoyé." });
+    if (!req.file || !req.file.path) {
+      return res.status(400).json({ error: "Aucun fichier envoyé." });
     }
-
-    const imagePath = req.file.filename;
-
+  
+    const imageUrl = req.file.path; // ⚠️ c'est bien "imageUrl"
+  
     try {
-        const [user] = await db.query("SELECT profile_picture FROM users WHERE id = ?", [req.user.id]);
-        if (user.length === 0) {
-            return res.status(404).json({ error: "Utilisateur introuvable." });
-        }
-
-        const oldImagePath = user[0].profile_picture;
-        await db.query("UPDATE users SET profile_picture = ? WHERE id = ?", [imagePath, req.user.id]);
-
-        if (oldImagePath && oldImagePath !== "default-profile.png" && fs.existsSync(path.join(process.cwd(), oldImagePath))) {
-            fs.unlinkSync(path.join(process.cwd(), oldImagePath));
-        }
-
-        res.status(200).json({ message: "Photo de profil mise à jour.", profile_picture: imagePath });
+      await db.query(
+        "UPDATE users SET profile_picture = ? WHERE id = ?",
+        [imageUrl, req.user.id] // ✅ Correction ici
+      );
+  
+      res.status(200).json({ 
+        message: "Photo de profil mise à jour.", 
+        profile_picture: imageUrl // ✅ Correction ici
+      });
     } catch (error) {
-        res.status(500).json({ error: "Erreur serveur." });
+      console.error("🛑 ERREUR UPLOAD PDP :", error);
+      res.status(500).json({ error: "Erreur serveur.", details: error.message });
     }
-};
+  };
+  
 
 const updateProfile = async (req, res) => {
     try {
