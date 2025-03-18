@@ -1,3 +1,4 @@
+// matchCronJob.js
 import cron from 'node-cron';
 import { 
     syncUpcomingMatchesToDB, 
@@ -19,7 +20,7 @@ cron.schedule('*/2 * * * *', async () => {
     console.log('✅ Scores mis à jour.');
 });
 
-// Mise à jour des statuts de match (upcoming → ongoing → finished) toutes les minutes
+// Mise à jour des statuts de matchs toutes les minutes
 cron.schedule('* * * * *', async () => {
     console.log('🔄 Vérification des statuts de matchs...');
     await updateMatchesStatus();

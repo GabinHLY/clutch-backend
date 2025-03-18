@@ -1,3 +1,4 @@
+// server.js
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
@@ -8,7 +9,11 @@ import userRoutes from './routes/userRoutes.js';
 import matchRoutes from './routes/matchRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
 import { syncMatches } from './interfaces/matchController.js';
-import './infrastructure/matchCronJob.js'; // Importer pour activer les tâches cron
+import './infrastructure/matchCronJob.js';
+// server.js (extrait)
+import playerRoutes from './routes/playerRoutes.js';
+
+
 
 dotenv.config();
 
@@ -29,6 +34,7 @@ app.use(cookieParser());
 app.use('/api/users', userRoutes);
 app.use('/api', matchRoutes);
 app.use('/api', teamRoutes);
+app.use('/api', playerRoutes);
 
 // Permet d'accéder aux images dans /uploads
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));

@@ -1,3 +1,4 @@
+// teamRoutes.js
 import express from 'express';
 import { getAllTeams, getTeam, getRoster } from '../interfaces/teamController.js';
 
