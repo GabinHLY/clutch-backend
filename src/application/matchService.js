@@ -308,12 +308,24 @@ async function updateMatchesStatus() {
       console.log(`✅ Match ${match.match_id} passé au statut 'past'`);
     }
 
+    // Mise à jour des scores en direct
     await updateLiveMatchScores();
+
+    // Vérification qu'il y ait toujours 20 matchs en "upcoming"
+    const [upcomingCountResult] = await db.query(
+      "SELECT COUNT(*) as count FROM matches WHERE status = 'upcoming'"
+    );
+    const upcomingCount = upcomingCountResult[0].count;
+    if (upcomingCount < 20) {
+      console.log(`🔄 Seulement ${upcomingCount} matchs upcoming. Ajout de nouveaux matchs pour atteindre 20.`);
+      await syncUpcomingMatchesToDB();
+    }
 
   } catch (error) {
     console.error("❌ Erreur lors de la mise à jour des statuts de matchs :", error.message);
   }
 }
+
 
 export { 
   getMatchesByStatus, 
