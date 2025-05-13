@@ -1,0 +1,1 @@
+ALTER TABLE `matches` ADD `stream_url` varchar(255);

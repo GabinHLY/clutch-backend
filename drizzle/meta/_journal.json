@@ -1,0 +1,62 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1745486153742,
+      "tag": "0000_charming_patriot",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1745487438597,
+      "tag": "0001_soft_agent_zero",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1745849377127,
+      "tag": "0002_safe_richard_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1746622419471,
+      "tag": "0003_square_nextwave",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1746627191458,
+      "tag": "0004_nasty_aaron_stack",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1747042823022,
+      "tag": "0005_naive_salo",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1747044565058,
+      "tag": "0006_slippery_nocturne",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1747061505216,
+      "tag": "0007_stiff_shinko_yamashiro",
+      "breakpoints": true
+    }
+  ]
+}

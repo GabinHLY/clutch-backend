@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `tokens` int DEFAULT 100 NOT NULL;

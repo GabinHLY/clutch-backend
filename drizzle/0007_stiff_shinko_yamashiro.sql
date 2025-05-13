@@ -1,0 +1,1 @@
+ALTER TABLE `matches` ADD `tournament_name` varchar(255) DEFAULT null;
